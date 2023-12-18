@@ -49,7 +49,7 @@ Before using SlowSloth, ensure you have the following prerequisites installed on
 1. Clone the SlowSloth repository to your local machine:
 
    ```sh
-   git clone https://github.com/yourusername/SlowSloth.git
+   git clone https://github.com/mduygu/slowsloth.git
    
 ## Usage
 
