@@ -65,6 +65,10 @@ Replace the placeholders with your specific values:
 - **<Concurrency_Level>**: Number of concurrent requests to send.
 - **<Delay_in_seconds>**: Delay in seconds between sending header data.
 - For example, to test a target URL "http://example.com" with 10 concurrent requests using the - GET method and a 5-second delay, you can run:
+  
+   ```sh
+   ./SlowSloth -u http://example.com -m GET -c 10 -delay 5
+   ```
 
 ## Contributing
 
