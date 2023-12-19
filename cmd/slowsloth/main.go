@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 	"sync"
 	"time"
 )
@@ -61,22 +62,43 @@ func main() {
 	serviceChecker := servicechecker.NewServiceChecker(*urlString, statusManager, 10*time.Second)
 	go serviceChecker.CheckServiceAvailability()
 
-	// Start a goroutine to continuously print the status
+	done := make(chan bool)
+	var printWg sync.WaitGroup
+
+	printWg.Add(1) // Add to the WaitGroup for the printing goroutine
+
 	go func() {
+		defer printWg.Done() // Mark this goroutine as done when it exits
 		for {
-			fmt.Printf("\rTotal active connections: %d, Service availability: %t",
-				statusManager.ActiveConnections(),
-				statusManager.IsServiceAvailable())
-			time.Sleep(500 * time.Millisecond)
+			select {
+			case <-done:
+				// Exit the loop (and hence the goroutine) without further printing
+				return
+			default:
+				fmt.Printf("\rTotal active connections: %d, Service availability: %t",
+					statusManager.ActiveConnections(),
+					statusManager.IsServiceAvailable())
+				time.Sleep(500 * time.Millisecond)
+			}
 		}
 	}()
 
-	// Wait for all requests to complete
-	wg.Wait()
+	wg.Wait() // Wait for the main workload to complete
 
-	// Add a delay to see the final status before the program exits
-	time.Sleep(1 * time.Second)
-	fmt.Println("\nAll requests completed.")
+	// Signal the printing goroutine to stop and wait for it to finish
+	done <- true
+	printWg.Wait()
+
+	// Clear the line before printing the final status
+	fmt.Printf("\r%s\r", strings.Repeat(" ", 50))
+
+	// Now print the final status on a new line
+	fmt.Printf("Final Status - Total active connections: %d, Service availability: %t\n",
+		statusManager.ActiveConnections(),
+		statusManager.IsServiceAvailable())
+
+	fmt.Println("All requests completed.")
+
 }
 
 func isServiceAvailable(url string) bool {
