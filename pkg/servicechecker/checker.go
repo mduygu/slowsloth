@@ -45,14 +45,14 @@ func NewServiceChecker(url string, statusManager *statusprinter.StatusManager, i
 
 func (sc *ServiceChecker) CheckServiceAvailability() {
 	client := &http.Client{}
+
 	for {
 		req, err := http.NewRequest("GET", sc.url, nil)
 		if err != nil {
-			sc.statusManager.SetServiceAvailable(false) // Silently handle the error
+			sc.statusManager.SetServiceAvailable(false)
 			continue
 		}
 
-		// Use the custom client to make the request
 		resp, err := client.Do(req)
 		if err != nil {
 			sc.statusManager.SetServiceAvailable(false)

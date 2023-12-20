@@ -2,6 +2,7 @@ package slowrequest
 
 import (
 	"SlowSloth/pkg/statusprinter"
+	"crypto/tls"
 	"fmt"
 	"math/rand"
 	"net"
@@ -75,7 +76,14 @@ func (rm *RequestManager) SendSlowRequest(wg *sync.WaitGroup, urlObj *url.URL, d
 	rm.statusManager.IncrementActiveConnections()
 	defer rm.statusManager.DecrementActiveConnections()
 
-	conn, err := net.Dial("tcp", urlObj.Host)
+	var conn net.Conn
+	var err error
+
+	if urlObj.Scheme == "https" {
+		conn, err = tls.Dial("tcp", urlObj.Host+":443", &tls.Config{InsecureSkipVerify: true})
+	} else {
+		conn, err = net.Dial("tcp", urlObj.Host)
+	}
 	if err != nil {
 		rm.statusManager.SetServiceAvailable(false)
 		return
