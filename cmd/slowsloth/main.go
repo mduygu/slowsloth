@@ -79,7 +79,7 @@ func main() {
 				fmt.Printf("\rTotal active connections: %d, Service availability: %t",
 					statusManager.ActiveConnections(),
 					statusManager.IsServiceAvailable())
-				time.Sleep(500 * time.Millisecond)
+				time.Sleep(1 * time.Second)
 			}
 		}
 	}()
