@@ -1,6 +1,7 @@
 package main
 
 import (
+	"SlowSloth/common"
 	"SlowSloth/pkg/servicechecker"
 	slowrequest "SlowSloth/pkg/slowrequester"
 	"SlowSloth/pkg/statusprinter"
@@ -102,14 +103,22 @@ func main() {
 }
 
 func isServiceAvailable(url string) bool {
-	client := http.Client{
-
+	client := &http.Client{
 		Timeout: 5 * time.Second,
 	}
-	resp, err := client.Get(url)
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return false
+	}
+
+	req.Header.Set("User-Agent", common.GetRandomUserAgent())
+
+	resp, err := client.Do(req)
 	if err != nil {
 		return false
 	}
 	defer resp.Body.Close()
+
 	return resp.StatusCode == http.StatusOK
 }

