@@ -1,12 +1,14 @@
 package statusprinter
 
 import (
+	"runtime"
 	"sync/atomic"
 )
 
 type StatusManager struct {
 	activeConnections int32
-	serviceAvailable  int32 // Using int32 to allow atomic operations
+	serviceAvailable  int32
+	totalRAMUsage     uint64
 }
 
 func NewStatusManager() *StatusManager {
@@ -25,6 +27,13 @@ func (sm *StatusManager) ActiveConnections() int32 {
 	return atomic.LoadInt32(&sm.activeConnections)
 }
 
+func (sm *StatusManager) TotalRAMUsage() uint64 {
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+	totalRAMUsage := m.Sys / 1024 / 1024
+	return totalRAMUsage
+}
+
 func (sm *StatusManager) SetServiceAvailable(isAvailable bool) {
 	var val int32
 	if isAvailable {
@@ -33,6 +42,18 @@ func (sm *StatusManager) SetServiceAvailable(isAvailable bool) {
 		val = 0
 	}
 	atomic.StoreInt32(&sm.serviceAvailable, val)
+}
+
+func (sm *StatusManager) SetServiceColor(isAvailable bool) string {
+	var color string
+
+	if isAvailable {
+		color = "\033[32m"
+	} else {
+		color = "\033[31m"
+	}
+
+	return color
 }
 
 func (sm *StatusManager) IsServiceAvailable() bool {

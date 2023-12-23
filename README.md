@@ -5,7 +5,7 @@
 SlowSloth is a Go application designed to simulate slow HTTP attacks on APIs, helping you perform stress tests on your web services. This README provides an overview of the application and explains how to use it effectively.
 
 ## Release
-Current Release: v0.1.4
+Current Release: v1.0.2
 
 ## Table of Contents
 

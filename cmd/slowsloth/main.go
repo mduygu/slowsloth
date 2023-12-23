@@ -16,6 +16,11 @@ import (
 )
 
 func main() {
+
+	const (
+		Reset = "\033[0m"
+	)
+
 	urlString := flag.String("u", "", "Target URL")
 	method := flag.String("m", "GET", "HTTP Method: GET or POST")
 	data := flag.String("d", "", "Data for POST request")
@@ -76,9 +81,13 @@ func main() {
 				// Exit the loop (and hence the goroutine) without further printing
 				return
 			default:
-				fmt.Printf("\rTotal active connections: %d, Service availability: %t",
+
+				fmt.Printf("\rTotal active connections: %d, Service availability: %s%t%s, Total RAM usage: %d MB",
 					statusManager.ActiveConnections(),
-					statusManager.IsServiceAvailable())
+					statusManager.SetServiceColor(statusManager.IsServiceAvailable()),
+					statusManager.IsServiceAvailable(),
+					Reset,
+					statusManager.TotalRAMUsage())
 				time.Sleep(1 * time.Second)
 			}
 		}
@@ -94,9 +103,10 @@ func main() {
 	fmt.Printf("\r%s\r", strings.Repeat(" ", 50))
 
 	// Now print the final status on a new line
-	fmt.Printf("Final Status - Total active connections: %d, Service availability: %t\n",
+	fmt.Printf("Final Status - Total active connections: %d, Service availability: %t, Total RAM usage %d MB\n",
 		statusManager.ActiveConnections(),
-		statusManager.IsServiceAvailable())
+		statusManager.IsServiceAvailable(),
+		statusManager.TotalRAMUsage())
 
 	fmt.Println("All requests completed.")
 
