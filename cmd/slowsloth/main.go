@@ -28,10 +28,12 @@ func main() {
 	delay := flag.Int("delay", 10, "Delay in seconds between header sends")
 	flag.Parse()
 
-	if *urlString == "" {
-		fmt.Println("A URL must be provided with the -u flag.")
+	if err := common.ValidateInput(urlString, method, data); err != nil {
+		fmt.Println("Error:", err)
+		flag.Usage()
 		return
 	}
+
 	urlObj, err := url.Parse(*urlString)
 	if err != nil {
 		fmt.Println("Invalid URL:", err)
