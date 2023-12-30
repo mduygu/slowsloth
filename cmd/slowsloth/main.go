@@ -28,10 +28,12 @@ func main() {
 	delay := flag.Int("delay", 10, "Delay in seconds between header sends")
 	flag.Parse()
 
-	if *urlString == "" {
-		fmt.Println("A URL must be provided with the -u flag.")
+	if err := common.ValidateInput(urlString, method, data); err != nil {
+		fmt.Println("Error:", err)
+		flag.Usage()
 		return
 	}
+
 	urlObj, err := url.Parse(*urlString)
 	if err != nil {
 		fmt.Println("Invalid URL:", err)
@@ -71,23 +73,25 @@ func main() {
 	done := make(chan bool)
 	var printWg sync.WaitGroup
 
-	printWg.Add(1) // Add to the WaitGroup for the printing goroutine
+	printWg.Add(1)
 
 	go func() {
-		defer printWg.Done() // Mark this goroutine as done when it exits
-		for {
+		defer printWg.Done()
+		for i := 0; ; i++ {
 			select {
 			case <-done:
-				// Exit the loop (and hence the goroutine) without further printing
 				return
 			default:
+				if i > 0 {
 
-				fmt.Printf("\rTotal active connections: %d, Service availability: %s%t%s, Total RAM usage: %d MB",
-					statusManager.ActiveConnections(),
-					statusManager.SetServiceColor(statusManager.IsServiceAvailable()),
-					statusManager.IsServiceAvailable(),
-					Reset,
-					statusManager.TotalRAMUsage())
+					fmt.Printf("\033[3A\033[K\033[K\033[K")
+				}
+
+				fmt.Printf("Total active connections: %d\n", statusManager.ActiveConnections())
+
+				fmt.Printf("Service availability: %s%t\n", statusManager.SetServiceColor(statusManager.IsServiceAvailable()), statusManager.IsServiceAvailable())
+				fmt.Printf(Reset)
+				fmt.Printf("Total RAM usage: %d MB\n", statusManager.TotalRAMUsage())
 				time.Sleep(1 * time.Second)
 			}
 		}
