@@ -88,8 +88,7 @@ func main() {
 				}
 
 				fmt.Printf("Total active connections: %d\n", statusManager.ActiveConnections())
-
-				fmt.Printf("Service availability: %s%t\n", statusManager.SetServiceColor(statusManager.IsServiceAvailable()), statusManager.IsServiceAvailable())
+				fmt.Printf("Service availability: %s%s\n", statusManager.SetServiceColor(statusManager.IsServiceAvailable()), statusManager.ServiceAvailability())
 				fmt.Printf(Reset)
 				fmt.Printf("Total RAM usage: %d MB\n", statusManager.TotalRAMUsage())
 				time.Sleep(1 * time.Second)

@@ -48,9 +48,9 @@ func (sm *StatusManager) SetServiceColor(isAvailable bool) string {
 	var color string
 
 	if isAvailable {
-		color = "\033[32m"
+		color = "\033[1m\033[32m"
 	} else {
-		color = "\033[31m"
+		color = "\033[1m\033[31m"
 	}
 
 	return color
@@ -58,4 +58,13 @@ func (sm *StatusManager) SetServiceColor(isAvailable bool) string {
 
 func (sm *StatusManager) IsServiceAvailable() bool {
 	return atomic.LoadInt32(&sm.serviceAvailable) == 1
+}
+
+func (sm *StatusManager) ServiceAvailability() string {
+
+	serviceAvailability := "NO"
+	if sm.IsServiceAvailable() {
+		serviceAvailability = "YES"
+	}
+	return serviceAvailability
 }
