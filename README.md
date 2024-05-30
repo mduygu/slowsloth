@@ -45,21 +45,42 @@ Whether you want to stress test a production API, evaluate the performance of a 
 
 Before using SlowSloth, ensure you have the following prerequisites installed on your system:
 
-- [Go](https://golang.org/dl/): You must have Go installed to build and run the application.
+- [Go](https://golang.org/dl/): You must have Go (1.22.3) installed to build and run the application. 
 - [Git](https://git-scm.com/downloads): Git is required to clone the repository (if not already done).
+- [Docker](https://docs.docker.com/get-docker/): If you prefer to use SlowSloth in a container, Docker is required.
 
 ### Installation
-
+#### Go Binary
 1. Clone the SlowSloth repository to your local machine:
 
    ```sh
    git clone https://github.com/mduygu/slowsloth.git
-   
+   ```
+2. Build Go binary (In the slowsloth directory):
+
+   ```sh
+   go build -o slowsloth main.go
+   ```
+   For Windows users:
+   ```sh
+   go build -o slowsloth.exe main.go
+   ```
+
+#### *Docker
+   If you prefer to use SlowSloth in a container; you can build Docker container from Dockerfile (In the slowsloth directory):
+   ```sh
+   docker build -t slowsloth:latest .
+   ```
+
 ## Usage
 
 Run the application with the desired parameters:
    ```sh
-   ./SlowSloth -u <Target_URL> -m <HTTP_Method> -d <Request_Data> -c <Concurrency_Level> -delay <Delay_in_seconds>
+   ./slowsloth -u <Target_URL> -m <HTTP_Method> -d <Request_Data> -c <Concurrency_Level> -delay <Delay_in_seconds>
+   ```
+If you are using Docker:
+   ```sh
+   docker run slowsloth -u <Target_URL> -m <HTTP_Method> -d <Request_Data> -c <Concurrency_Level> -delay <Delay_in_seconds>
    ```
 Replace the placeholders with your specific values:
 - **<Target_URL>**: The URL of the target service you want to test.
@@ -70,7 +91,7 @@ Replace the placeholders with your specific values:
 - For example, to test a target URL "http://example.com" with 10 concurrent requests using the - GET method and a 5-second delay, you can run:
   
    ```sh
-   ./SlowSloth -u http://example.com -m GET -c 10 -delay 5
+   ./slowsloth -u http://example.com -m GET -c 10 -delay 5
    ```
 
 ## Contributing
