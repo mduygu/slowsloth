@@ -9,6 +9,7 @@ type StatusManager struct {
 	activeConnections int32
 	serviceAvailable  int32
 	totalRAMUsage     uint64
+	totalBandwidth    uint64
 }
 
 func NewStatusManager() *StatusManager {
@@ -32,6 +33,14 @@ func (sm *StatusManager) TotalRAMUsage() uint64 {
 	runtime.ReadMemStats(&m)
 	totalRAMUsage := m.Sys / 1024 / 1024
 	return totalRAMUsage
+}
+
+func (sm *StatusManager) IncrementTotalBandwidth(bytes uint64) {
+	atomic.AddUint64(&sm.totalBandwidth, bytes)
+}
+
+func (sm *StatusManager) TotalBandwidth() uint64 {
+	return atomic.LoadUint64(&sm.totalBandwidth)
 }
 
 func (sm *StatusManager) SetServiceAvailable(isAvailable bool) {

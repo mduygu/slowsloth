@@ -16,7 +16,6 @@ import (
 )
 
 func main() {
-
 	const (
 		Reset = "\033[0m"
 	)
@@ -29,7 +28,7 @@ func main() {
 	flag.Parse()
 
 	if err := common.ValidateInput(urlString, method, data); err != nil {
-		fmt.Println("Error:", err)
+		common.LogError(fmt.Errorf("Validation error: %w", err))
 		flag.Usage()
 		return
 	}
@@ -77,20 +76,17 @@ func main() {
 
 	go func() {
 		defer printWg.Done()
-		for i := 0; ; i++ {
+		for {
 			select {
 			case <-done:
 				return
 			default:
-				if i > 0 {
-
-					fmt.Printf("\033[3A\033[K\033[K\033[K")
-				}
-
+				fmt.Print("\033[H\033[2J")
 				fmt.Printf("Total active connections: %d\n", statusManager.ActiveConnections())
 				fmt.Printf("Service availability: %s%s\n", statusManager.SetServiceColor(statusManager.IsServiceAvailable()), statusManager.ServiceAvailability())
 				fmt.Printf(Reset)
 				fmt.Printf("Total RAM usage: %d MB\n", statusManager.TotalRAMUsage())
+				fmt.Printf("Total bandwidth usage: %d bytes\n", statusManager.TotalBandwidth())
 				time.Sleep(1 * time.Second)
 			}
 		}
@@ -106,13 +102,13 @@ func main() {
 	fmt.Printf("\r%s\r", strings.Repeat(" ", 50))
 
 	// Now print the final status on a new line
-	fmt.Printf("Final Status - Total active connections: %d, Service availability: %t, Total RAM usage %d MB\n",
+	fmt.Printf("Final Status - Total active connections: %d, Service availability: %t, Total RAM usage %d MB, Total bandwidth usage %d bytes\n",
 		statusManager.ActiveConnections(),
 		statusManager.IsServiceAvailable(),
-		statusManager.TotalRAMUsage())
+		statusManager.TotalRAMUsage(),
+		statusManager.TotalBandwidth())
 
 	fmt.Println("All requests completed.")
-
 }
 
 func isServiceAvailable(url string) bool {
