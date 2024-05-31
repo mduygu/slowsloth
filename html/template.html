@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Test Results</title>
+    <style>
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+        }
+        h1 {
+            text-align: center;
+        }
+        .chart-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
+        }
+        .chart-box {
+            flex: 1 1 45%;
+            margin: 20px;
+            background-color: #1e1e1e;
+            padding: 20px;
+            border-radius: 10px;
+        }
+        canvas {
+            max-width: 100%;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.24.0/moment.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@1.0.0"></script>
+</head>
+<body>
+    <h1>Test Results</h1>
+    <div class="chart-container">
+        <div class="chart-box">
+            <canvas id="connectionsChart"></canvas>
+        </div>
+        <div class="chart-box">
+            <canvas id="ramUsageChart"></canvas>
+        </div>
+        <div class="chart-box">
+            <canvas id="availabilityChart"></canvas>
+        </div>
+    </div>
+    <script>
+        const connectionsData = {{CONNECTIONS_DATA}};
+        const ramUsageData = {{RAM_USAGE_DATA}};
+        const availabilityData = {{AVAILABILITY_DATA}};
+
+        const connectionsCtx = document.getElementById('connectionsChart').getContext('2d');
+        const connectionsChart = new Chart(connectionsCtx, {
+            type: 'line',
+            data: {
+                labels: connectionsData.timestamps,
+                datasets: [{
+                    label: 'Total Active Connections',
+                    data: connectionsData.values,
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: {
+                        type: 'time',
+                        time: {
+                            unit: 'second'
+                        },
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        }
+                    }
+                }
+            }
+        });
+
+        const ramUsageCtx = document.getElementById('ramUsageChart').getContext('2d');
+        const ramUsageChart = new Chart(ramUsageCtx, {
+            type: 'line',
+            data: {
+                labels: ramUsageData.timestamps,
+                datasets: [{
+                    label: 'RAM Usage (MB)',
+                    data: ramUsageData.values,
+                    borderColor: 'rgba(153, 102, 255, 1)',
+                    backgroundColor: 'rgba(153, 102, 255, 0.2)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: {
+                        type: 'time',
+                        time: {
+                            unit: 'second'
+                        },
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        }
+                    }
+                }
+            }
+        });
+
+        const availabilityCtx = document.getElementById('availabilityChart').getContext('2d');
+        const availabilityChart = new Chart(availabilityCtx, {
+            type: 'bar',
+            data: {
+                labels: availabilityData.timestamps,
+                datasets: [{
+                    label: 'Service Availability',
+                    data: availabilityData.values,
+                    backgroundColor: availabilityData.values.map(val => val ? 'rgba(75, 192, 192, 0.2)' : 'rgba(255, 99, 132, 0.2)'),
+                    borderColor: availabilityData.values.map(val => val ? 'rgba(75, 192, 192, 1)' : 'rgba(255, 99, 132, 1)'),
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: {
+                        type: 'time',
+                        time: {
+                            unit: 'second'
+                        },
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        max: 1,
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
