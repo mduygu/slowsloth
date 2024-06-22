@@ -104,3 +104,8 @@ Contributions are welcome! If you'd like to contribute to SlowSloth, please foll
 - Make your changes and commit them with descriptive commit messages.
 - Push your changes to your forked repository.
 - Submit a pull request to the main SlowSloth repository.
+
+## License
+
+This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
+
